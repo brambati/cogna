@@ -16,8 +16,7 @@ class User {
         $config = require __DIR__ . '/../config/database.php';
         
         try {
-            $dsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
-            $pdo = new PDO($dsn, $config['username'], $config['password'], $config['options']);
+            $pdo = new PDO($config['dsn'], $config['username'], $config['password'], $config['options']);
             $this->fpdo = new FluentPDO($pdo);
         } catch (PDOException $e) {
             throw new Exception("Erro de conexão: " . $e->getMessage());

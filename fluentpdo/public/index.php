@@ -26,6 +26,16 @@ session_start([
     'use_strict_mode' => true
 ]);
 
+// Se já está logado, redireciona para dashboard
+if (isset($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit;
+}
+
+// Se não está logado, redireciona para login
+header('Location: login.php');
+exit;
+
 // Routing simples
 $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
@@ -94,7 +104,7 @@ switch ($route) {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>404 - Página não encontrada</title>
-            <link rel="stylesheet" href="/css/style.css">
+            <link rel="stylesheet" href="css/style.css">
         </head>
         <body>
             <div class="container">

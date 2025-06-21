@@ -17,7 +17,7 @@ try {
     
     // Verificar se admin já existe
     $config = require __DIR__ . '/../app/config/database.php';
-    $dsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
+    $dsn = $config['dsn'];
     $pdo = new PDO($dsn, $config['username'], $config['password'], $config['options']);
     
     $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");

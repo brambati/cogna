@@ -12,7 +12,7 @@ try {
     require_once __DIR__ . '/../app/helpers/security.php';
     
     $config = require __DIR__ . '/../app/config/database.php';
-    $dsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
+    $dsn = $config['dsn'];
     $pdo = new PDO($dsn, $config['username'], $config['password'], $config['options']);
     
     echo "Verificando se usuário admin existe...<br>";

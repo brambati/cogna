@@ -1,129 +1,169 @@
 <?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => '',
+    'secure' => false,
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+session_start();
+
+ob_start();
 
 /**
  * Página de Login - FluentPDO
  */
 
-require_once __DIR__ . '/../app/helpers/security.php';
-
-// Se já estiver logado, redirecionar
+// Se já está logado, redireciona para dashboard
 if (isset($_SESSION['user_id'])) {
-    header('Location: /dashboard');
+    header('Location: dashboard.php');
     exit;
 }
 
-$errors = [];
-$success = '';
+$error = '';
+$success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Verificar CSRF
-    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
-        $errors[] = 'Token de segurança inválido';
-    } else {
-        $email = sanitizeInput($_POST['email'] ?? '');
+    try {
+        // Carregar autoload do Composer
+        require_once '../vendor/autoload.php';
+        
+        // Carregar configuração do banco
+        $config = require '../app/config/database.php';
+        $pdo = new PDO($config['dsn'], $config['username'], $config['password'], $config['options']);
+        $fluent = new Envms\FluentPDO\Query($pdo);
+        
+        $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
         
         if (empty($email) || empty($password)) {
-            $errors[] = 'Email e senha são obrigatórios';
-        } else {
-            require_once __DIR__ . '/../app/models/User.php';
-            $userModel = new User();
-            
-            $result = $userModel->authenticate($email, $password);
-            
-            if ($result['success']) {
-                header('Location: /dashboard');
-                exit;
-            } else {
-                $errors = $result['errors'];
-            }
+            throw new Exception('Email e senha são obrigatórios');
         }
+        
+        // Buscar usuário por email
+        $user = $fluent->from('users')
+            ->select(['id', 'first_name', 'last_name', 'email', 'password_hash'])
+            ->where('email = ?', $email)
+            ->fetch();
+        
+        if (!$user) {
+            throw new Exception('Email ou senha inválidos');
+        }
+        
+        // Verificar senha
+        if (!password_verify($password, $user['password_hash'])) {
+            throw new Exception('Email ou senha inválidos');
+        }
+        
+        // Login bem-sucedido - criar sessões
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['name'] = trim($user['first_name'] . ' ' . $user['last_name']);
+        $_SESSION['email'] = $user['email'];
+        
+        $success = true;
+        
+        // Redirecionar para dashboard
+        header('Location: dashboard.php');
+        exit;
+        
+    } catch (Exception $e) {
+        $error = $e->getMessage();
     }
 }
 
-$csrfToken = generateCSRFToken();
+ob_end_flush();
 ?>
 
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Task Manager FluentPDO</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <title>Login - Sistema de Tarefas</title>
+    <link rel="stylesheet" href="css/auth.css">
 </head>
-<body class="auth-page">
+<body>
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-header">
-                <h1>Task Manager</h1>
-                <h2>FluentPDO</h2>
-                <p>Entre com suas credenciais</p>
+                <h1>Entrar</h1>
+                <p>Acesse sua conta para gerenciar suas tarefas</p>
             </div>
 
-            <?php if (!empty($errors)): ?>
+            <?php if ($error): ?>
                 <div class="alert alert-error">
-                    <?php foreach ($errors as $error): ?>
-                        <p><?php echo htmlspecialchars($error); ?></p>
-                    <?php endforeach; ?>
+                    <?php echo htmlspecialchars($error); ?>
                 </div>
             <?php endif; ?>
 
             <?php if ($success): ?>
                 <div class="alert alert-success">
-                    <p><?php echo htmlspecialchars($success); ?></p>
+                    Login realizado com sucesso! Redirecionando...
                 </div>
             <?php endif; ?>
 
-            <form method="POST" class="auth-form" id="loginForm">
-                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                
+            <form class="auth-form" id="loginForm" method="POST" action="login.php">
                 <div class="form-group">
-                    <label for="email">Email:</label>
+                    <label for="email">Email</label>
                     <input type="email" id="email" name="email" required 
                            value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+                    <span class="error-message" id="emailError"></span>
                 </div>
 
                 <div class="form-group">
-                    <label for="password">Senha:</label>
+                    <label for="password">Senha</label>
                     <input type="password" id="password" name="password" required>
+                    <span class="error-message" id="passwordError"></span>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-full">Entrar</button>
+                <div class="form-options">
+                    <label class="checkbox">
+                        <input type="checkbox" name="remember" id="remember">
+                        <span class="checkmark"></span>
+                        Lembrar de mim
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-primary">Entrar</button>
+
+                <div class="auth-links">
+                    <a href="forgot-password.php">Esqueci minha senha</a>
+                </div>
             </form>
 
             <div class="auth-footer">
-                <p>Não tem uma conta? <a href="/register">Registre-se aqui</a></p>
-                <p class="demo-info">
-                    <strong>Demo:</strong> admin@taskmanager.test / Admin123!
-                </p>
+                <p>Não tem uma conta? <a href="register.php">Criar conta</a></p>
             </div>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        $(document).ready(function() {
-            $('#loginForm').on('submit', function(e) {
-                const email = $('#email').val().trim();
-                const password = $('#password').val();
-                
-                if (!email || !password) {
-                    e.preventDefault();
-                    alert('Email e senha são obrigatórios');
-                    return false;
-                }
-                
-                if (!isValidEmail(email)) {
-                    e.preventDefault();
-                    alert('Por favor, insira um email válido');
-                    return false;
-                }
-            });
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('loginForm');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
             
-            function isValidEmail(email) {
-                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return regex.test(email);
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    // Validação básica
+                    if (!emailInput.value.trim()) {
+                        alert('Por favor, digite seu email');
+                        e.preventDefault();
+                        return;
+                    }
+                    
+                    if (!passwordInput.value) {
+                        alert('Por favor, digite sua senha');
+                        e.preventDefault();
+                        return;
+                    }
+                    
+                    console.log('Enviando login para:', emailInput.value);
+                });
             }
         });
     </script>

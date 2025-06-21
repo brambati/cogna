@@ -78,7 +78,7 @@ function verifyApiAuthentication(): ?array {
         
         // Verificar token na base de dados
         $config = require __DIR__ . '/../../app/config/database.php';
-        $dsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
+        $dsn = $config['dsn'];
         $pdo = new PDO($dsn, $config['username'], $config['password'], $config['options']);
         
         $stmt = $pdo->prepare("

@@ -1,0 +1,41 @@
+# Dependências
+vendor/
+node_modules/
+
+# Logs
+*.log
+logs/
+docker/nginx/logs/*.log
+
+# Certificados SSL (serão gerados automaticamente)
+docker/nginx/ssl/*.crt
+docker/nginx/ssl/*.key
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Composer
+composer.phar
+composer.lock
+
+# Ambiente
+.env
+.env.local
+
+# Cache
+cache/
+tmp/
+
+# Uploads
+uploads/
+storage/
+
+# MySQL data
+mysql-data/

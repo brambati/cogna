@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  nginx:
+    build: ./docker/nginx
+    container_name: taskmanager_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./fluentpdo:/var/www/html/fluentpdo
+      - ./medoo:/var/www/html/medoo
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+      - ./docker/nginx/logs:/var/log/nginx
+    depends_on:
+      - php-fluentpdo
+      - php-medoo
+      - mysql
+    networks:
+      - task-network
+    extra_hosts:
+      - "projetofluentpdo.test:127.0.0.1"
+      - "projetomedoo.test:127.0.0.1"
+    restart: unless-stopped
+
+  php-fluentpdo:
+    build: ./docker/php
+    container_name: taskmanager_php_fluentpdo
+    volumes:
+      - ./fluentpdo:/var/www/html/fluentpdo
+    depends_on:
+      - mysql
+    networks:
+      - task-network
+    environment:
+      - DB_HOST=mysql
+      - DB_NAME=taskmanager
+      - DB_USER=taskuser
+      - DB_PASS=taskpass
+      - APP_ENV=development
+    restart: unless-stopped
+
+  php-medoo:
+    build: ./docker/php
+    container_name: taskmanager_php_medoo
+    volumes:
+      - ./medoo:/var/www/html/medoo
+    depends_on:
+      - mysql
+    networks:
+      - task-network
+    environment:
+      - DB_HOST=mysql
+      - DB_NAME=taskmanager
+      - DB_USER=taskuser
+      - DB_PASS=taskpass
+      - APP_ENV=development
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    container_name: taskmanager_mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: taskmanager
+      MYSQL_USER: taskuser
+      MYSQL_PASSWORD: taskpass
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - task-network
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: taskmanager_phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: taskuser
+      PMA_PASSWORD: taskpass
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - task-network
+    restart: unless-stopped
+
+networks:
+  task-network:
+    driver: bridge
+
+volumes:
+  mysql-data:

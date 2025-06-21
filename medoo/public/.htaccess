@@ -1,0 +1,56 @@
+# Configuração do Apache para o Sistema de Tarefas
+
+RewriteEngine On
+
+# Roteamento para APIs de autenticação
+RewriteRule ^api/auth/(.*)$ app/api/auth/router.php [QSA,L]
+
+# Roteamento para outras APIs (futuro)
+RewriteRule ^api/tasks/(.*)$ app/api/tasks/router.php [QSA,L]
+RewriteRule ^api/categories/(.*)$ app/api/categories/router.php [QSA,L]
+RewriteRule ^api/user/(.*)$ app/api/user/router.php [QSA,L]
+
+# Configurações de segurança
+<Files "*.php">
+    <IfModule mod_headers.c>
+        Header always set X-Content-Type-Options nosniff
+        Header always set X-Frame-Options DENY
+        Header always set X-XSS-Protection "1; mode=block"
+        Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    </IfModule>
+</Files>
+
+# Bloquear acesso a arquivos sensíveis
+<Files ~ "\.(env|log|ini)$">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Bloquear acesso a diretórios de configuração
+RedirectMatch 403 ^/app/config/
+RedirectMatch 403 ^/vendor/
+
+# Configurações de cache para assets estáticos
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
+
+# Compressão GZIP
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+</IfModule>

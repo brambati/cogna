@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp:*)",
+      "Bash(mkdir:*)",
+      "Bash(curl:*)",
+      "Bash(docker logs:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}

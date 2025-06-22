@@ -9,10 +9,11 @@
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
-// Headers de segurança
-require_once __DIR__ . '/../app/helpers/security.php';
-setSecurityHeaders();
-forceHTTPS();
+// Headers de segurança básicos
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('X-XSS-Protection: 1; mode=block');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 
 // Autoload do Composer
 require_once __DIR__ . '/../vendor/autoload.php';

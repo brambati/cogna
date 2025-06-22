@@ -4,7 +4,7 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-require_once '../../vendor/autoload.php';
+require_once '../../../vendor/autoload.php';
 
 session_start();
 
@@ -17,8 +17,13 @@ if (!isset($_SESSION['user_id'])) {
 
 try {
     // Conectar ao banco
-    $config = require '../../app/config/database.php';
-    $database = new Medoo\Medoo($config);
+    $config = require '../../config/database.php';
+    $pdo = new PDO(
+        "mysql:host={$config['host']};dbname={$config['database']};charset=utf8mb4",
+        $config['username'],
+        $config['password'],
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
     
     $user_id = $_SESSION['user_id'];
     $method = $_SERVER['REQUEST_METHOD'];
@@ -27,8 +32,8 @@ try {
     
     // Extrair ID da tarefa se presente
     $task_id = null;
-    if (isset($segments[3]) && is_numeric($segments[3])) {
-        $task_id = (int)$segments[3];
+    if (isset($segments[4]) && is_numeric($segments[4])) {
+        $task_id = (int)$segments[4];
     } elseif (isset($_GET['id']) && is_numeric($_GET['id'])) {
         $task_id = (int)$_GET['id'];
     }
@@ -37,18 +42,14 @@ try {
         case 'GET':
             if ($task_id) {
                 // Obter tarefa específica
-                $task = $database->get('tasks', [
-                    '[>]task_categories' => ['category_id' => 'id']
-                ], [
-                    'tasks.id', 'tasks.title', 'tasks.description',
-                    'tasks.status', 'tasks.priority', 'tasks.due_date',
-                    'tasks.created_at', 'tasks.updated_at',
-                    'task_categories.name(category_name)',
-                    'task_categories.color(category_color)'
-                ], [
-                    'tasks.id' => $task_id, 
-                    'tasks.user_id' => $user_id
-                ]);
+                $stmt = $pdo->prepare("
+                    SELECT t.*, tc.name as category_name, tc.color as category_color
+                    FROM tasks t
+                    LEFT JOIN task_categories tc ON t.category_id = tc.id
+                    WHERE t.id = ? AND t.user_id = ?
+                ");
+                $stmt->execute([$task_id, $user_id]);
+                $task = $stmt->fetch(PDO::FETCH_ASSOC);
                 
                 if (!$task) {
                     http_response_code(404);
@@ -58,58 +59,68 @@ try {
                 
                 echo json_encode(['success' => true, 'data' => $task]);
             } else {
-                // Listar todas as tarefas com filtros
-                $filters = ['tasks.user_id' => $user_id];
+                // Listar tarefas com filtros
+                $where_conditions = ['t.user_id = ?'];
+                $params = [$user_id];
                 
                 // Aplicar filtros se fornecidos
                 if (!empty($_GET['status'])) {
-                    $filters['tasks.status'] = $_GET['status'];
+                    $where_conditions[] = 't.status = ?';
+                    $params[] = $_GET['status'];
                 }
                 if (!empty($_GET['priority'])) {
-                    $filters['tasks.priority'] = $_GET['priority'];
+                    $where_conditions[] = 't.priority = ?';
+                    $params[] = $_GET['priority'];
                 }
                 if (!empty($_GET['category_id'])) {
-                    $filters['tasks.category_id'] = $_GET['category_id'];
+                    $where_conditions[] = 't.category_id = ?';
+                    $params[] = $_GET['category_id'];
+                }
+                if (!empty($_GET['search'])) {
+                    $search = '%' . $_GET['search'] . '%';
+                    $where_conditions[] = '(t.title LIKE ? OR t.description LIKE ?)';
+                    $params[] = $search;
+                    $params[] = $search;
                 }
                 
                 // Ordenação
-                $order = 'tasks.created_at DESC';
+                $order = 't.created_at DESC';
                 if (!empty($_GET['sort'])) {
                     switch ($_GET['sort']) {
                         case 'title_asc':
-                            $order = 'tasks.title ASC';
+                            $order = 't.title ASC';
                             break;
                         case 'title_desc':
-                            $order = 'tasks.title DESC';
+                            $order = 't.title DESC';
                             break;
                         case 'due_date_asc':
-                            $order = 'tasks.due_date ASC';
+                            $order = 't.due_date ASC';
                             break;
                         case 'due_date_desc':
-                            $order = 'tasks.due_date DESC';
+                            $order = 't.due_date DESC';
                             break;
                         case 'priority_desc':
-                            $order = 'FIELD(tasks.priority, "urgent", "high", "medium", "low")';
+                            $order = 'FIELD(t.priority, "urgent", "high", "medium", "low")';
                             break;
                     }
                 }
                 
-                $filters['ORDER'] = $order;
+                $sql = "
+                    SELECT t.*, tc.name as category_name, tc.color as category_color
+                    FROM tasks t
+                    LEFT JOIN task_categories tc ON t.category_id = tc.id
+                    WHERE " . implode(' AND ', $where_conditions) . "
+                    ORDER BY {$order}
+                ";
                 
                 // Limite de resultados
                 if (!empty($_GET['limit'])) {
-                    $filters['LIMIT'] = min((int)$_GET['limit'], 100);
+                    $sql .= ' LIMIT ' . min((int)$_GET['limit'], 100);
                 }
                 
-                $tasks = $database->select('tasks', [
-                    '[>]task_categories' => ['category_id' => 'id']
-                ], [
-                    'tasks.id', 'tasks.title', 'tasks.description',
-                    'tasks.status', 'tasks.priority', 'tasks.due_date',
-                    'tasks.created_at', 'tasks.updated_at',
-                    'task_categories.name(category_name)',
-                    'task_categories.color(category_color)'
-                ], $filters);
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 echo json_encode(['success' => true, 'data' => $tasks]);
             }
@@ -125,22 +136,23 @@ try {
                 break;
             }
             
-            $taskData = [
-                'title' => trim($input['title']),
-                'description' => trim($input['description'] ?? ''),
-                'category_id' => $input['category_id'] ?? null,
-                'priority' => $input['priority'] ?? 'medium',
-                'status' => $input['status'] ?? 'pending',
-                'due_date' => $input['due_date'] ?? null,
-                'user_id' => $user_id,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
+            $stmt = $pdo->prepare("
+                INSERT INTO tasks (title, description, category_id, priority, status, due_date, user_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ");
             
-            $result = $database->insert('tasks', $taskData);
+            $result = $stmt->execute([
+                trim($input['title']),
+                trim($input['description'] ?? ''),
+                $input['category_id'] ?? null,
+                $input['priority'] ?? 'medium',
+                $input['status'] ?? 'pending',
+                $input['due_date'] ?? null,
+                $user_id
+            ]);
             
-            if ($result->rowCount() > 0) {
-                $new_id = $database->id();
+            if ($result) {
+                $new_id = $pdo->lastInsertId();
                 echo json_encode([
                     'success' => true, 
                     'message' => 'Tarefa criada com sucesso',
@@ -168,22 +180,24 @@ try {
                 break;
             }
             
-            $updateData = [
-                'title' => trim($input['title']),
-                'description' => trim($input['description'] ?? ''),
-                'category_id' => $input['category_id'] ?? null,
-                'priority' => $input['priority'] ?? 'medium',
-                'status' => $input['status'] ?? 'pending',
-                'due_date' => $input['due_date'] ?? null,
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
+            $stmt = $pdo->prepare("
+                UPDATE tasks 
+                SET title = ?, description = ?, category_id = ?, priority = ?, status = ?, due_date = ?, updated_at = NOW()
+                WHERE id = ? AND user_id = ?
+            ");
             
-            $result = $database->update('tasks', $updateData, [
-                'id' => $task_id,
-                'user_id' => $user_id
+            $result = $stmt->execute([
+                trim($input['title']),
+                trim($input['description'] ?? ''),
+                $input['category_id'] ?? null,
+                $input['priority'] ?? 'medium',
+                $input['status'] ?? 'pending',
+                $input['due_date'] ?? null,
+                $task_id,
+                $user_id
             ]);
             
-            if ($result->rowCount() > 0) {
+            if ($stmt->rowCount() > 0) {
                 echo json_encode([
                     'success' => true,
                     'message' => 'Tarefa atualizada com sucesso'
@@ -204,12 +218,10 @@ try {
                 break;
             }
             
-            $result = $database->delete('tasks', [
-                'id' => $task_id,
-                'user_id' => $user_id
-            ]);
+            $stmt = $pdo->prepare("DELETE FROM tasks WHERE id = ? AND user_id = ?");
+            $result = $stmt->execute([$task_id, $user_id]);
             
-            if ($result->rowCount() > 0) {
+            if ($stmt->rowCount() > 0) {
                 echo json_encode([
                     'success' => true,
                     'message' => 'Tarefa excluída com sucesso'
@@ -236,15 +248,15 @@ try {
                 break;
             }
             
-            $result = $database->update('tasks', [
-                'status' => $input['status'],
-                'updated_at' => date('Y-m-d H:i:s')
-            ], [
-                'id' => $task_id,
-                'user_id' => $user_id
-            ]);
+            $stmt = $pdo->prepare("
+                UPDATE tasks 
+                SET status = ?, updated_at = NOW()
+                WHERE id = ? AND user_id = ?
+            ");
             
-            if ($result->rowCount() > 0) {
+            $result = $stmt->execute([$input['status'], $task_id, $user_id]);
+            
+            if ($stmt->rowCount() > 0) {
                 echo json_encode([
                     'success' => true,
                     'message' => 'Status atualizado com sucesso'

@@ -298,3 +298,4 @@ class SecurityHelper {
 if (rand(1, 100) === 1) {
     SecurityHelper::cleanupRateLimitFiles();
 }
+?> 

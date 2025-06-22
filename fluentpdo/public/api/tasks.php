@@ -1,8 +1,14 @@
 <?php
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
 require_once '../../vendor/autoload.php';
+
 session_start();
 
+// Verificar autenticação
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['error' => 'Não autorizado']);
@@ -10,17 +16,21 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 try {
+    // Conectar ao banco
     $config = require '../../app/config/database.php';
-    $pdo = new PDO($config['dsn'], $config['username'], $config['password'], $config['options']);
-    $fluent = new Envms\FluentPDO\Query($pdo);
+    $pdo = new PDO(
+        "mysql:host={$config['host']};dbname={$config['database']};charset=utf8mb4",
+        $config['username'],
+        $config['password'],
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
+    
     $user_id = $_SESSION['user_id'];
     $method = $_SERVER['REQUEST_METHOD'];
-    
-    // Roteamento simples
     $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $segments = explode('/', trim($path, '/'));
     
-    // Aceitar ID tanto por URL path quanto por query parameter
+    // Extrair ID da tarefa se presente
     $task_id = null;
     if (isset($segments[3]) && is_numeric($segments[3])) {
         $task_id = (int)$segments[3];
@@ -28,50 +38,90 @@ try {
         $task_id = (int)$_GET['id'];
     }
     
-    // Detectar ação especial via query parameter
-    $action = $_GET['action'] ?? null;
-    
-    // Se for POST com action=patch, tratar como PATCH
-    if ($method === 'POST' && $action === 'patch') {
-        $method = 'PATCH';
-    }
-    
     switch ($method) {
         case 'GET':
             if ($task_id) {
                 // Obter tarefa específica
-                $task = $fluent->from('tasks')
-                    ->leftJoin('task_categories ON tasks.category_id = task_categories.id')
-                    ->select('tasks.id, tasks.title, tasks.description, tasks.status, tasks.priority, tasks.due_date, task_categories.name AS category_name')
-                    ->where('tasks.id', $task_id)
-                    ->where('tasks.user_id', $user_id)
-                    ->fetch();
+                $stmt = $pdo->prepare("
+                    SELECT t.*, tc.name as category_name, tc.color as category_color
+                    FROM tasks t
+                    LEFT JOIN task_categories tc ON t.category_id = tc.id
+                    WHERE t.id = ? AND t.user_id = ?
+                ");
+                $stmt->execute([$task_id, $user_id]);
+                $task = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$task) {
+                    http_response_code(404);
+                    echo json_encode(['error' => 'Tarefa não encontrada']);
+                    break;
+                }
                 
                 echo json_encode(['success' => true, 'data' => $task]);
             } else {
                 // Listar tarefas com filtros
-                $query = $fluent->from('tasks')
-                    ->leftJoin('task_categories ON tasks.category_id = task_categories.id')
-                    ->select('tasks.id, tasks.title, tasks.description, tasks.status, tasks.priority, tasks.due_date, task_categories.name AS category_name')
-                    ->where('tasks.user_id', $user_id);
+                $where_conditions = ['t.user_id = ?'];
+                $params = [$user_id];
                 
+                // Aplicar filtros se fornecidos
                 if (!empty($_GET['status'])) {
-                    $query->where('tasks.status', $_GET['status']);
+                    $where_conditions[] = 't.status = ?';
+                    $params[] = $_GET['status'];
                 }
                 if (!empty($_GET['priority'])) {
-                    $query->where('tasks.priority', $_GET['priority']);
+                    $where_conditions[] = 't.priority = ?';
+                    $params[] = $_GET['priority'];
                 }
-                if (!empty($_GET['search'])) {
-                    $search = '%' . $_GET['search'] . '%';
-                    $query->where('(tasks.title LIKE ? OR tasks.description LIKE ?)', $search, $search);
+                if (!empty($_GET['category_id'])) {
+                    $where_conditions[] = 't.category_id = ?';
+                    $params[] = $_GET['category_id'];
                 }
                 
-                $tasks = $query->fetchAll();
+                // Ordenação
+                $order = 't.created_at DESC';
+                if (!empty($_GET['sort'])) {
+                    switch ($_GET['sort']) {
+                        case 'title_asc':
+                            $order = 't.title ASC';
+                            break;
+                        case 'title_desc':
+                            $order = 't.title DESC';
+                            break;
+                        case 'due_date_asc':
+                            $order = 't.due_date ASC';
+                            break;
+                        case 'due_date_desc':
+                            $order = 't.due_date DESC';
+                            break;
+                        case 'priority_desc':
+                            $order = 'FIELD(t.priority, "urgent", "high", "medium", "low")';
+                            break;
+                    }
+                }
+                
+                $sql = "
+                    SELECT t.*, tc.name as category_name, tc.color as category_color
+                    FROM tasks t
+                    LEFT JOIN task_categories tc ON t.category_id = tc.id
+                    WHERE " . implode(' AND ', $where_conditions) . "
+                    ORDER BY {$order}
+                ";
+                
+                // Limite de resultados
+                if (!empty($_GET['limit'])) {
+                    $sql .= ' LIMIT ' . min((int)$_GET['limit'], 100);
+                }
+                
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
                 echo json_encode(['success' => true, 'data' => $tasks]);
             }
             break;
             
         case 'POST':
+            // Criar nova tarefa
             $input = json_decode(file_get_contents('php://input'), true);
             
             if (empty($input['title'])) {
@@ -80,69 +130,142 @@ try {
                 break;
             }
             
-            $result = $fluent->insertInto('tasks')->values([
-                'title' => $input['title'],
-                'description' => $input['description'] ?? '',
-                'category_id' => $input['category_id'] ?? null,
-                'priority' => $input['priority'] ?? 'medium',
-                'status' => $input['status'] ?? 'pending',
-                'due_date' => $input['due_date'] ?? null,
-                'user_id' => $user_id,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ])->execute();
+            $stmt = $pdo->prepare("
+                INSERT INTO tasks (title, description, category_id, priority, status, due_date, user_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ");
             
-            echo json_encode(['success' => true, 'data' => ['id' => $pdo->lastInsertId()]]);
+            $result = $stmt->execute([
+                trim($input['title']),
+                trim($input['description'] ?? ''),
+                $input['category_id'] ?? null,
+                $input['priority'] ?? 'medium',
+                $input['status'] ?? 'pending',
+                $input['due_date'] ?? null,
+                $user_id
+            ]);
+            
+            if ($result) {
+                $new_id = $pdo->lastInsertId();
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Tarefa criada com sucesso',
+                    'data' => ['id' => $new_id]
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['error' => 'Erro ao criar tarefa']);
+            }
             break;
             
         case 'PUT':
+            // Atualizar tarefa
             if (!$task_id) {
                 http_response_code(400);
-                echo json_encode(['error' => 'ID obrigatório']);
+                echo json_encode(['error' => 'ID da tarefa é obrigatório']);
                 break;
             }
             
             $input = json_decode(file_get_contents('php://input'), true);
             
-            $result = $fluent->update('tasks')->set([
-                'title' => $input['title'],
-                'description' => $input['description'] ?? '',
-                'category_id' => $input['category_id'] ?? null,
-                'priority' => $input['priority'] ?? 'medium',
-                'status' => $input['status'] ?? 'pending',
-                'due_date' => $input['due_date'] ?? null,
-                'updated_at' => date('Y-m-d H:i:s')
-            ])->where('id', $task_id)->where('user_id', $user_id)->execute();
+            if (empty($input['title'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Título é obrigatório']);
+                break;
+            }
             
-            echo json_encode(['success' => true, 'message' => 'Atualizado']);
+            $stmt = $pdo->prepare("
+                UPDATE tasks 
+                SET title = ?, description = ?, category_id = ?, priority = ?, status = ?, due_date = ?, updated_at = NOW()
+                WHERE id = ? AND user_id = ?
+            ");
+            
+            $result = $stmt->execute([
+                trim($input['title']),
+                trim($input['description'] ?? ''),
+                $input['category_id'] ?? null,
+                $input['priority'] ?? 'medium',
+                $input['status'] ?? 'pending',
+                $input['due_date'] ?? null,
+                $task_id,
+                $user_id
+            ]);
+            
+            if ($stmt->rowCount() > 0) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Tarefa atualizada com sucesso'
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Nenhuma alteração realizada'
+                ]);
+            }
             break;
             
         case 'DELETE':
+            // Excluir tarefa
             if (!$task_id) {
                 http_response_code(400);
-                echo json_encode(['error' => 'ID obrigatório']);
+                echo json_encode(['error' => 'ID da tarefa é obrigatório']);
                 break;
             }
             
-            $fluent->deleteFrom('tasks')->where('id', $task_id)->where('user_id', $user_id)->execute();
-            echo json_encode(['success' => true, 'message' => 'Excluído']);
+            $stmt = $pdo->prepare("DELETE FROM tasks WHERE id = ? AND user_id = ?");
+            $result = $stmt->execute([$task_id, $user_id]);
+            
+            if ($stmt->rowCount() > 0) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Tarefa excluída com sucesso'
+                ]);
+            } else {
+                http_response_code(404);
+                echo json_encode(['error' => 'Tarefa não encontrada']);
+            }
             break;
             
         case 'PATCH':
+            // Atualizar status da tarefa
             if (!$task_id) {
                 http_response_code(400);
-                echo json_encode(['error' => 'ID obrigatório']);
+                echo json_encode(['error' => 'ID da tarefa é obrigatório']);
                 break;
             }
             
             $input = json_decode(file_get_contents('php://input'), true);
             
-            $fluent->update('tasks')->set([
-                'status' => $input['status'],
-                'updated_at' => date('Y-m-d H:i:s')
-            ])->where('id', $task_id)->where('user_id', $user_id)->execute();
+            if (empty($input['status'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Status é obrigatório']);
+                break;
+            }
             
-            echo json_encode(['success' => true, 'message' => 'Status atualizado']);
+            $stmt = $pdo->prepare("
+                UPDATE tasks 
+                SET status = ?, updated_at = NOW()
+                WHERE id = ? AND user_id = ?
+            ");
+            
+            $result = $stmt->execute([$input['status'], $task_id, $user_id]);
+            
+            if ($stmt->rowCount() > 0) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Status atualizado com sucesso'
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Nenhuma alteração realizada'
+                ]);
+            }
+            break;
+            
+        default:
+            http_response_code(405);
+            echo json_encode(['error' => 'Método não permitido']);
             break;
     }
     
@@ -150,4 +273,4 @@ try {
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);
 }
-?>
+?> 

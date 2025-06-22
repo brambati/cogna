@@ -4,7 +4,7 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-require_once '../../vendor/autoload.php';
+require_once '../../../vendor/autoload.php';
 
 session_start();
 
@@ -17,7 +17,7 @@ if (!isset($_SESSION['user_id'])) {
 
 try {
     // Conectar ao banco
-    $config = require '../../app/config/database.php';
+    $config = require '../../config/database.php';
     $database = new Medoo\Medoo($config);
     
     $user_id = $_SESSION['user_id'];
@@ -27,8 +27,8 @@ try {
     
     // Extrair ID da tarefa se presente
     $task_id = null;
-    if (isset($segments[3]) && is_numeric($segments[3])) {
-        $task_id = (int)$segments[3];
+    if (isset($segments[4]) && is_numeric($segments[4])) {
+        $task_id = (int)$segments[4];
     } elseif (isset($_GET['id']) && is_numeric($_GET['id'])) {
         $task_id = (int)$_GET['id'];
     }
@@ -70,6 +70,13 @@ try {
                 }
                 if (!empty($_GET['category_id'])) {
                     $filters['tasks.category_id'] = $_GET['category_id'];
+                }
+                if (!empty($_GET['search'])) {
+                    $search = '%' . $_GET['search'] . '%';
+                    $filters['OR'] = [
+                        'tasks.title[~]' => $search,
+                        'tasks.description[~]' => $search
+                    ];
                 }
                 
                 // Ordenação

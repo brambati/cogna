@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Checkbox - Medoo</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .api-test { background: #f0f8ff; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 3px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        input[type="checkbox"] { width: 18px; height: 18px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste de Checkbox - Sistema Medoo</h1>
+    
+    <div class="test-section">
+        <h3>📊 Informações da API:</h3>
+        <div id="api-info" class="result info">Carregando...</div>
+    </div>
+    
+    <div class="test-section api-test">
+        <h3>🔗 Teste da URL Base:</h3>
+        <div id="url-test" class="result info">Verificando URL...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>✅ Teste do Checkbox:</h3>
+        <label>
+            <input type="checkbox" id="test-checkbox" data-task-id="999">
+            Tarefa de Teste (ID: 999)
+        </label>
+        <div id="checkbox-result" class="result info">Clique no checkbox acima para testar</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📝 Log de Eventos:</h3>
+        <div id="event-log" class="result info">Aguardando eventos...</div>
+    </div>
+
+    <script src="js/api.js?v=<?= time() ?>"></script>
+    <script>
+        let logEntries = [];
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logEntries.unshift(`[${timestamp}] ${message}`);
+            if (logEntries.length > 10) logEntries.pop();
+            
+            const logDiv = document.getElementById('event-log');
+            logDiv.innerHTML = logEntries.join('<br>');
+            logDiv.className = `result ${type}`;
+        }
+        
+        // Testar API
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar informações da API
+            if (typeof window.api !== 'undefined') {
+                const apiInfo = document.getElementById('api-info');
+                apiInfo.innerHTML = `✅ API carregada com sucesso<br>BaseURL: ${window.api.baseUrl}`;
+                apiInfo.className = 'result success';
+                addLog('API carregada com sucesso', 'success');
+            } else {
+                const apiInfo = document.getElementById('api-info');
+                apiInfo.innerHTML = '❌ API não foi carregada';
+                apiInfo.className = 'result error';
+                addLog('ERRO: API não foi carregada', 'error');
+            }
+            
+            // Testar URL
+            const urlTest = document.getElementById('url-test');
+            const currentUrl = window.location;
+            const baseUrl = `${currentUrl.protocol}//${currentUrl.host}`;
+            urlTest.innerHTML = `
+                Location Origin: ${window.location.origin}<br>
+                Calculated Base: ${baseUrl}<br>
+                API BaseURL: ${window.api ? window.api.baseUrl : 'N/A'}
+            `;
+            
+            // Testar checkbox
+            const checkbox = document.getElementById('test-checkbox');
+            checkbox.addEventListener('change', async function() {
+                const taskId = this.dataset.taskId;
+                const status = this.checked ? 'completed' : 'pending';
+                const resultDiv = document.getElementById('checkbox-result');
+                
+                addLog(`Checkbox clicado - ID: ${taskId}, Status: ${status}`);
+                
+                try {
+                    if (window.api) {
+                        addLog('Enviando requisição PATCH...');
+                        const response = await window.api.updateTaskStatus(taskId, status);
+                        
+                        resultDiv.innerHTML = `✅ Sucesso! Tarefa ${taskId} marcada como ${status}`;
+                        resultDiv.className = 'result success';
+                        addLog(`Sucesso: ${JSON.stringify(response)}`, 'success');
+                        
+                    } else {
+                        throw new Error('API não disponível');
+                    }
+                } catch (error) {
+                    resultDiv.innerHTML = `❌ Erro: ${error.message}`;
+                    resultDiv.className = 'result error';
+                    addLog(`Erro: ${error.message}`, 'error');
+                    
+                    // Reverter checkbox
+                    this.checked = !this.checked;
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

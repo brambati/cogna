@@ -157,15 +157,7 @@ try {
                 </button>
             </div>
 
-            <!-- Campo de Pesquisa -->
-            <div class="search-section">
-                <div class="search-input-container">
-                    <input type="text" 
-                           class="task-search" 
-                           placeholder="🔍 Pesquisar tarefas..." 
-                           style="width: 100%; padding: 12px 20px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; margin-bottom: 20px;">
-                </div>
-            </div>
+
 
             <div class="filters">
                 <div class="filter-group">
@@ -281,7 +273,9 @@ try {
         </div>
     </main>
 
-    <script src="js/main.js"></script>
-    <script src="js/dashboard-counters.js"></script>
+    <script src="js/api.js?v=<?= time() ?>"></script>
+    <script src="js/tasks.js?v=<?= time() ?>"></script>
+    <script src="js/main.js?v=<?= time() ?>"></script>
+    <script src="js/dashboard-counters.js?v=<?= time() ?>"></script>
 </body>
 </html>

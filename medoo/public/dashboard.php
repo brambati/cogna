@@ -11,14 +11,6 @@ session_start();
 
 require_once __DIR__ . '/../app/models/Task.php';
 
-// DEBUG: Exibir conteúdo da sessão
-if (isset($_GET['debug'])) {
-    echo '<pre>'; var_dump(
-        session_id(),
-        $_SESSION
-    ); echo '</pre>'; exit;
-}
-
 // Verificar se está logado
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -82,6 +74,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Sistema de Tarefas</title>
     <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/dashboard-enhancements.css">
 </head>
 <body>    <header class="header">
         <div class="header-content">
@@ -103,6 +96,75 @@ try {
             <div class="page-header">
                 <h2>Minhas Tarefas</h2>
                 <a href="add-task.php" class="btn-primary">+ Nova Tarefa</a>
+            </div>
+
+            <!-- Seção de Estatísticas -->
+            <div class="stats-section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-content">
+                            <h3 class="total-tasks">0</h3>
+                            <p>Total de Tarefas</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-content">
+                            <h3 class="pending-tasks">0</h3>
+                            <p>Pendentes</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔄</div>
+                        <div class="stat-content">
+                            <h3 class="in-progress-tasks">0</h3>
+                            <p>Em Andamento</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-content">
+                            <h3 class="completed-tasks">0</h3>
+                            <p>Concluídas</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔥</div>
+                        <div class="stat-content">
+                            <h3 class="urgent-priority">0</h3>
+                            <p>Urgentes</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⚠️</div>
+                        <div class="stat-content">
+                            <h3 class="overdue-tasks">0</h3>
+                            <p>Atrasadas</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="progress-section">
+                    <h4>Taxa de Conclusão: <span class="completion-rate">0%</span></h4>
+                    <div class="progress">
+                        <div class="progress-bar completion-progress" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <button class="refresh-stats btn-secondary" style="margin-top: 15px;">
+                    <i class="fas fa-sync-alt"></i> Atualizar Estatísticas
+                </button>
+            </div>
+
+            <!-- Campo de Pesquisa -->
+            <div class="search-section">
+                <div class="search-input-container">
+                    <input type="text" 
+                           class="task-search" 
+                           placeholder="🔍 Pesquisar tarefas..." 
+                           style="width: 100%; padding: 12px 20px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; margin-bottom: 20px;">
+                </div>
             </div>
 
             <div class="filters">
@@ -170,8 +232,17 @@ try {
                              data-priority="<?= htmlspecialchars($task['priority']) ?>"
                              data-category="<?= htmlspecialchars($task['category_name'] ?? '') ?>"
                              data-created="<?= htmlspecialchars($task['created_at']) ?>">
+                            
                             <div class="task-header">
-                                <h3 class="task-title"><?= htmlspecialchars($task['title']) ?></h3>
+                                <div class="task-title-container" style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" 
+                                           class="task-status-checkbox" 
+                                           data-task-id="<?= $task['id'] ?>"
+                                           <?= $task['status'] === 'completed' ? 'checked' : '' ?>
+                                           title="Marcar como <?= $task['status'] === 'completed' ? 'pendente' : 'concluída' ?>"
+                                           style="width: 18px; height: 18px; cursor: pointer;">
+                                    <h3 class="task-title" style="margin: 0; flex: 1;"><?= htmlspecialchars($task['title']) ?></h3>
+                                </div>
                                 <div class="task-actions">
                                     <a href="edit-task.php?id=<?= $task['id'] ?>" class="btn-secondary">Editar</a>
                                     <a href="delete-task.php?task_id=<?= $task['id'] ?>" class="btn-danger" onclick="return confirm('Tem certeza que deseja excluir esta tarefa?')">Excluir</a>
@@ -211,5 +282,6 @@ try {
     </main>
 
     <script src="js/main.js"></script>
+    <script src="js/dashboard-counters.js"></script>
 </body>
 </html>

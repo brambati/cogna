@@ -1,5 +1,4 @@
 -- TaskManager Database Structure
--- Criado para o teste de desenvolvedor FullStack PHP
 
 USE taskmanager;
 

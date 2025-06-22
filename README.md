@@ -1,419 +1,329 @@
-# Task Manager - Teste de Desenvolvedor FullStack PHP
+# 🎯 Sistema de Tarefas - PHP
 
-Este projeto implementa um sistema completo de gerenciamento de tarefas usando duas bibliotecas diferentes de acesso ao banco de dados: **FluentPDO** e **Medoo**. Ambos os sistemas oferecem funcionalidades idênticas, permitindo comparar as diferentes abordagens de implementação.
+Sistema completo de gerenciamento de tarefas desenvolvido em PHP com Docker, implementado em **duas versões técnicas idênticas**:
 
-## 🚀 Características
+- **🔵 Medoo**: Usando Medoo ORM
+- **🟡 FluentPDO**: Usando FluentPDO Query Builder
 
-- **Dois sistemas idênticos** com bibliotecas diferentes:
-  - **Sistema 1**: FluentPDO - `https://projetofluentpdo.test`
-  - **Sistema 2**: Medoo - `https://projetomedoo.test`
-- **Docker completo** com nginx, PHP 8.2, MySQL 8.0
-- **HTTPS obrigatório** com certificados SSL
-- **API REST** completa
-- **Interface responsiva** com jQuery
-- **Autenticação segura** com proteções avançadas
-- **Medidas de segurança** contra XSS, CSRF, SQL Injection
+## 📋 Índice
 
-## 📋 Funcionalidades
+- [Funcionalidades](#-funcionalidades)
+- [Tecnologias](#-tecnologias)
+- [Pré-requisitos](#-pré-requisitos)
+- [Instalação](#-instalação)
+- [Uso](#-uso)
+- [Estrutura do Projeto](#-estrutura-do-projeto)
+- [API](#-api)
+- [Troubleshooting](#-troubleshooting)
 
-### Sistema de Autenticação
-- ✅ Login e registro de usuários
-- ✅ Recuperação de senha
-- ✅ Sessões seguras com tokens
-- ✅ Rate limiting para tentativas de login
-- ✅ Logs de segurança
+## 🚀 Funcionalidades
 
-### Gerenciamento de Tarefas
-- ✅ CRUD completo de tarefas
-- ✅ Categorização de tarefas
-- ✅ Níveis de prioridade (baixa, média, alta, urgente)
-- ✅ Status de tarefas (pendente, em progresso, concluída, cancelada)
-- ✅ Filtros e busca avançada
-- ✅ Datas de vencimento
+### ✅ **Gestão Completa de Tarefas**
+- ➕ Criar, editar e excluir tarefas
+- ☑️ Marcar como concluída via checkbox (tempo real)
+- 🎯 Prioridades: baixa, média, alta, urgente
+- 📊 Status: pendente, em andamento, concluída, cancelada
+- 📅 Data de vencimento
+- 🔍 Filtros avançados e pesquisa
 
-### API REST
-- ✅ Endpoints para todas as operações
-- ✅ Autenticação via tokens
-- ✅ Respostas JSON padronizadas
-- ✅ Status HTTP apropriados
+### 📁 **Sistema de Categorias**
+- 🎨 Criar categorias com cores personalizadas
+- 🏷️ Organizar tarefas por categoria
+- 📊 Estatísticas por categoria
+- 🔧 Gerenciamento completo
 
-## 🛠️ Tecnologias Utilizadas
+### 🔐 **Autenticação Segura**
+- 👤 Sistema de login/logout
+- ✍️ Registro de novos usuários
+- 🔑 Recuperação de senha via token
+- 👤 Perfil do usuário editável
 
-- **Backend**: PHP 8.2 (procedural)
-- **Banco de Dados**: MySQL 8.0
-- **ORM/Query Builders**: FluentPDO e Medoo
-- **Frontend**: HTML5, CSS3, JavaScript, jQuery
-- **Servidor Web**: Nginx
-- **Containerização**: Docker + Docker Compose
-- **SSL**: Certificados auto-assinados
-- **Gerenciamento de Dependências**: Composer
+### 📊 **Dashboard Interativo**
+- 📈 Estatísticas em tempo real
+- 📊 Taxa de conclusão visual
+- ⚠️ Tarefas atrasadas
+- 🔄 Contadores dinâmicos auto-atualizáveis
+
+## 🛠️ Tecnologias
+
+### **Backend**
+- **PHP**: 8.2+ com FPM
+- **MySQL**: 8.0
+- **ORMs**: Medoo e FluentPDO
+- **Composer**: Gerenciamento de dependências
+
+### **Frontend**
+- **HTML5/CSS3**: Layout responsivo
+- **JavaScript**: Interações dinâmicas
+- **AJAX**: Comunicação com APIs
+
+### **Infrastructure**
+- **Docker**: Containerização completa
+- **Nginx**: Servidor web com SSL
+- **PHP-FPM**: Processamento PHP otimizado
+- **MySQL**: Banco de dados
+
+## 📋 Pré-requisitos
+
+- **Docker**: 20.10+
+- **Docker Compose**: 2.0+
+- **Portas livres**: 80, 443, 3306, 8080
+
+## 🚀 Instalação
+
+### 1. **Clone o Repositório**
+```bash
+git clone <repo-url>
+cd cogna
+```
+
+### 2. **Configure Hosts (Opcional)**
+Adicione ao arquivo `/etc/hosts` (Linux/Mac) ou `C:\Windows\System32\drivers\etc\hosts` (Windows):
+```
+127.0.0.1 projetomedoo.test
+127.0.0.1 projetofluentpdo.test
+```
+
+### 3. **Inicie os Containers**
+```bash
+# Iniciar todos os serviços
+docker-compose up -d
+
+# Verificar status
+docker-compose ps
+```
+
+### 4. **Aguarde a Inicialização**
+```bash
+# Aguardar MySQL inicializar (primeira vez pode demorar)
+docker-compose logs -f mysql
+
+# Quando aparecer "ready for connections", pressione Ctrl+C
+```
+
+### 5. **Verificar Funcionamento**
+- **Medoo**: http://projetomedoo.test ou http://localhost
+- **FluentPDO**: http://projetofluentpdo.test ou http://localhost
+- **phpMyAdmin**: http://localhost:8080
+
+## 🎯 Uso
+
+### **Credenciais Padrão**
+- **Usuário**: `admin`
+- **Senha**: `admin123`
+
+### **Acessos Rápidos**
+
+#### **Sistema Medoo**
+- 🏠 **Dashboard**: http://projetomedoo.test/dashboard.php
+- 🔐 **Login**: http://projetomedoo.test/login.php
+- ➕ **Nova Tarefa**: http://projetomedoo.test/add-task.php
+- 📁 **Categorias**: http://projetomedoo.test/categories.php
+
+#### **Sistema FluentPDO**
+- 🏠 **Dashboard**: http://projetofluentpdo.test/dashboard.php
+- 🔐 **Login**: http://projetofluentpdo.test/login.php
+- ➕ **Nova Tarefa**: http://projetofluentpdo.test/add-task.php
+- 📁 **Categorias**: http://projetofluentpdo.test/categories.php
+
+### **Funcionalidades Principais**
+
+1. **Fazer Login** com as credenciais padrão
+2. **Criar Categorias** (opcional) com cores personalizadas
+3. **Adicionar Tarefas** com prioridade e categoria
+4. **Marcar como Concluída** clicando no checkbox ☑️
+5. **Filtrar e Pesquisar** tarefas no dashboard
+6. **Ver Estatísticas** em tempo real
 
 ## 📁 Estrutura do Projeto
 
 ```
-/project
-├── docker/                 # Configurações Docker
-│   ├── nginx/              # Configuração Nginx + SSL
-│   ├── php/                # Configuração PHP-FPM
-│   └── mysql/              # Scripts de inicialização do banco
-├── fluentpdo/              # Sistema usando FluentPDO
-│   ├── app/
-│   │   ├── api/            # Endpoints da API
-│   │   ├── auth/           # Sistema de autenticação
-│   │   ├── config/         # Configurações
-│   │   ├── helpers/        # Funções auxiliares
-│   │   └── models/         # Models de dados
-│   └── public/             # Arquivos públicos
-├── medoo/                  # Sistema usando Medoo
-│   ├── app/                # (mesma estrutura do FluentPDO)
-│   └── public/
-├── docker-compose.yml      # Orquestração dos containers
-└── README.md              # Esta documentação
+cogna/
+├── 📁 medoo/                    # Sistema usando Medoo ORM
+│   ├── 📁 app/
+│   │   ├── 📁 api/             # APIs RESTful
+│   │   ├── 📁 config/          # Configurações
+│   │   ├── 📁 models/          # Modelos de dados
+│   │   └── 📁 helpers/         # Funções auxiliares
+│   ├── 📁 public/              # Arquivos públicos
+│   │   ├── 📁 css/            # Estilos
+│   │   ├── 📁 js/             # JavaScript
+│   │   ├── 📁 api/            # Endpoints da API
+│   │   └── *.php              # Páginas principais
+│   └── 📁 vendor/              # Dependências Composer
+│
+├── 📁 fluentpdo/               # Sistema usando FluentPDO
+│   └── [mesma estrutura do medoo]
+│
+├── 📁 docker/                  # Configurações Docker
+│   ├── 📁 nginx/              # Nginx + SSL
+│   ├── 📁 php/                # PHP-FPM 8.2
+│   └── 📁 mysql/              # MySQL + init scripts
+│
+├── 📄 docker-compose.yml       # Orquestração dos containers
+└── 📄 README.md               # Esta documentação
 ```
 
-## 🚀 Instalação e Configuração
+## 🔌 API
 
-### Pré-requisitos
+### **Endpoints Principais**
 
-- Docker Desktop instalado
-- Git instalado
-- Acesso de administrador no sistema
+#### **Tarefas**
+```http
+GET    /api/tasks.php           # Listar tarefas
+POST   /api/simple-update.php   # Atualizar status da tarefa
+GET    /api/stats.php           # Estatísticas do dashboard
+```
 
-### Passo 1: Clonar o Repositório
+#### **Categorias**
+```http
+GET    /api/categories.php      # Listar categorias
+POST   /api/categories.php      # Criar categoria
+PUT    /api/categories.php      # Atualizar categoria
+DELETE /api/categories.php      # Excluir categoria
+```
 
+#### **Autenticação**
+```http
+POST   /api/auth/login.php      # Login
+POST   /api/auth/register.php   # Registro
+POST   /api/auth/logout.php     # Logout
+POST   /api/auth/forgot-password.php  # Esqueci senha
+POST   /api/auth/reset-password.php   # Reset senha
+```
+
+### **Exemplo de Uso da API**
+```javascript
+// Marcar tarefa como concluída
+fetch('api/simple-update.php?id=1', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'completed' })
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+## 🐳 Comandos Docker Úteis
+
+### **Gerenciamento dos Containers**
 ```bash
-git clone [URL_DO_REPOSITORIO]
-cd taskmanager
-```
-
-### Passo 2: Configurar Domínios Locais
-
-Edite o arquivo hosts do seu sistema operacional:
-
-**Windows**: `C:\\Windows\\System32\\drivers\\etc\\hosts`
-**Linux/Mac**: `/etc/hosts`
-
-Adicione as seguintes linhas:
-
-```
-127.0.0.1 projetofluentpdo.test
-127.0.0.1 projetomedoo.test
-```
-
-### Passo 3: Iniciar o Projeto
-
-```bash
-# Construir e iniciar todos os containers
+# Iniciar serviços
 docker-compose up -d
 
-# Verificar se todos os containers estão rodando
-docker-compose ps
+# Parar serviços
+docker-compose down
+
+# Reiniciar um serviço específico
+docker-compose restart nginx
+
+# Ver logs
+docker-compose logs -f [serviço]
+
+# Acessar container
+docker-compose exec php-medoo bash
+docker-compose exec mysql mysql -u root -p
 ```
 
-### Passo 4: Instalar Dependências PHP
-
+### **Desenvolvimento**
 ```bash
-# Instalar dependências do projeto FluentPDO
-docker exec taskmanager_php_fluentpdo composer install
+# Rebuild containers
+docker-compose build --no-cache
 
-# Instalar dependências do projeto Medoo
-docker exec taskmanager_php_medoo composer install
+# Reset completo (CUIDADO: apaga dados)
+docker-compose down -v
+docker-compose up -d
 ```
 
-### Passo 5: Configurar Certificados SSL
+## 🔧 Configurações
 
-Os certificados SSL são gerados automaticamente quando os containers iniciam. Para confiar nos certificados:
+### **Banco de Dados**
+- **Host**: mysql (interno) / localhost:3306 (externo)
+- **Database**: taskmanager
+- **Username**: taskuser
+- **Password**: taskpass
+- **Root Password**: rootpass
 
-1. Acesse: `https://projetofluentpdo.test`
-2. Clique em **"Avançado"** (ou "Advanced")
-3. Clique em **"Continuar para projetofluentpdo.test (não seguro)"**
-4. Repita para `https://projetomedoo.test`
-
-### Passo 6: Verificar Instalação
-
-Acesse os seguintes URLs para verificar se tudo está funcionando:
-
-- **FluentPDO**: https://projetofluentpdo.test
-- **Medoo**: https://projetomedoo.test
+### **URLs de Acesso**
+- **Medoo**: http://projetomedoo.test
+- **FluentPDO**: http://projetofluentpdo.test
 - **phpMyAdmin**: http://localhost:8080
 
-## 🔐 Configuração de Certificados SSL Confiáveis (Opcional)
+## 🛠️ Troubleshooting
 
-Para evitar avisos de segurança nos navegadores, você pode instalar os certificados como confiáveis:
+### **Problemas Comuns**
 
-### Windows
-
-1. Execute no PowerShell:
+#### **Portas Ocupadas**
 ```bash
-docker cp taskmanager_nginx:/etc/nginx/ssl/projetofluentpdo.test.crt .
+# Verificar portas em uso
+netstat -tulpn | grep -E ':(80|443|3306|8080)'
+
+# Parar outros serviços ou alterar portas no docker-compose.yml
 ```
 
-2. Duplo clique no arquivo `.crt`
-3. Clique em **"Instalar Certificado"**
-4. Escolha **"Máquina Local"**
-5. Selecione **"Colocar todos os certificados no repositório a seguir"**
-6. Clique em **"Procurar"** e escolha **"Autoridades de Certificação Raiz Confiáveis"**
-7. Clique **"OK"** e **"Concluir"**
-8. Repita para o certificado do Medoo
-
-### macOS
-
+#### **Containers não Iniciam**
 ```bash
-# Extrair certificado
-docker cp taskmanager_nginx:/etc/nginx/ssl/projetofluentpdo.test.crt .
-
-# Adicionar ao keychain
-sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain projetofluentpdo.test.crt
-```
-
-## 👤 Credenciais de Acesso
-
-### Usuário de Demonstração
-- **Email**: admin@taskmanager.test
-- **Senha**: admin123
-
-### Banco de Dados
-- **Host**: localhost:3306
-- **Usuário**: taskuser
-- **Senha**: taskpass
-- **Banco**: taskmanager
-
-### phpMyAdmin
-- **URL**: http://localhost:8080
-- **Usuário**: taskuser
-- **Senha**: taskpass
-
-## 📚 Documentação da API
-
-### Autenticação
-
-#### POST /api/auth/login
-```json
-{
-  "email": "admin@taskmanager.test",
-  "password": "admin123"
-}
-```
-
-#### POST /api/auth/register
-```json
-{
-  "username": "novousuario",
-  "email": "usuario@email.com",
-  "password": "senhasegura123",
-  "first_name": "Nome",
-  "last_name": "Sobrenome"
-}
-```
-
-#### POST /api/auth/logout
-```json
-{
-  "session_token": "token_da_sessao"
-}
-```
-
-### Tarefas
-
-#### GET /api/tasks
-Listar tarefas do usuário autenticado
-
-#### POST /api/tasks
-```json
-{
-  "title": "Nova Tarefa",
-  "description": "Descrição da tarefa",
-  "category_id": 1,
-  "priority": "high",
-  "due_date": "2024-12-31 23:59:59"
-}
-```
-
-#### PUT /api/tasks/{id}
-Atualizar tarefa existente
-
-#### DELETE /api/tasks/{id}
-Excluir tarefa
-
-### Categorias
-
-#### GET /api/categories
-Listar categorias do usuário
-
-#### POST /api/categories
-```json
-{
-  "name": "Nova Categoria",
-  "description": "Descrição da categoria",
-  "color": "#ff0000"
-}
-```
-
-## 🔒 Medidas de Segurança Implementadas
-
-### Autenticação e Autorização
-- Hash seguro de senhas (Argon2ID)
-- Tokens de sessão únicos
-- Expiração automática de sessões
-- Rate limiting para tentativas de login
-- Logs de tentativas de acesso
-
-### Proteção contra Ataques
-- **SQL Injection**: Uso de prepared statements
-- **XSS**: Sanitização de dados de entrada
-- **CSRF**: Tokens de proteção em formulários
-- **Session Hijacking**: Tokens de sessão seguros
-- **Brute Force**: Rate limiting
-
-### Headers de Segurança
-```
-X-Content-Type-Options: nosniff
-X-Frame-Options: SAMEORIGIN
-X-XSS-Protection: 1; mode=block
-Referrer-Policy: strict-origin-when-cross-origin
-Strict-Transport-Security: max-age=31536000; includeSubDomains
-```
-
-### Configurações PHP Seguras
-- `display_errors = Off`
-- `expose_php = Off`
-- Sessões com flags seguras
-- Validação rigorosa de entrada
-
-## 🏗️ Decisões de Arquitetura
-
-### Separação de Projetos
-- **FluentPDO** e **Medoo** em diretórios separados
-- Configurações independentes
-- Containers PHP separados para isolamento
-
-### Padrão MVC Simplificado
-- **Models**: Lógica de acesso aos dados
-- **Views**: Templates HTML/PHP
-- **Controllers**: Lógica de negócio (integrada às rotas)
-
-### API REST
-- Endpoints padronizados
-- Respostas JSON consistentes
-- Status HTTP apropriados
-- Validação de dados
-
-### Frontend
-- **jQuery** para manipulação DOM
-- **CSS Flexbox** para layout responsivo
-- **AJAX** para comunicação com API
-- **Validação** client-side e server-side
-
-## 🎯 Diferenças entre FluentPDO e Medoo
-
-### FluentPDO
-```php
-// Buscar usuário
-$user = $this->fpdo->from('users')
-    ->where('email = ? AND is_active = 1', $email)
-    ->fetch();
-
-// Inserir tarefa
-$taskId = $this->fpdo->insertInto('tasks', $data)->execute();
-```
-
-### Medoo
-```php
-// Buscar usuário
-$user = $this->database->get('users', '*', [
-    'email' => $email,
-    'is_active' => 1
-]);
-
-// Inserir tarefa
-$this->database->insert('tasks', $data);
-$taskId = $this->database->id();
-```
-
-## 🧪 Comandos de Desenvolvimento
-
-```bash
-# Ver logs dos containers
-docker-compose logs -f
-
-# Acessar container PHP
-docker exec -it taskmanager_php_fluentpdo bash
-
-# Backup do banco de dados
-docker exec taskmanager_mysql mysqldump -u taskuser -ptaskpass taskmanager > backup.sql
-
-# Restaurar banco de dados
-docker exec -i taskmanager_mysql mysql -u taskuser -ptaskpass taskmanager < backup.sql
-
-# Parar todos os containers
-docker-compose down
-
-# Reconstruir containers
-docker-compose up -d --build
-```
-
-## 🚀 Produção
-
-Para ambiente de produção, considere:
-
-1. **Certificados SSL reais** (Let's Encrypt)
-2. **Variáveis de ambiente** para configurações sensíveis
-3. **Backup automático** do banco de dados
-4. **Monitoramento** e logs centralizados
-5. **Otimização** do nginx e PHP
-6. **CDN** para arquivos estáticos
-
-## 🐛 Solução de Problemas
-
-### Containers não iniciam
-```bash
-# Verificar logs
+# Ver logs detalhados
 docker-compose logs
 
-# Reconstruir containers
-docker-compose down
-docker-compose up -d --build
+# Verificar espaço em disco
+df -h
+
+# Limpar recursos Docker não utilizados
+docker system prune -a
 ```
 
-### Erro de SSL
+#### **Erro de Permissão**
 ```bash
-# Verificar se certificados foram gerados
-docker exec taskmanager_nginx ls -la /etc/nginx/ssl/
-
-# Regenerar certificados
-docker exec taskmanager_nginx /generate-ssl.sh
-docker-compose restart nginx
+# Ajustar permissões (Linux/Mac)
+sudo chown -R $USER:$USER ./medoo ./fluentpdo
+chmod -R 755 ./medoo ./fluentpdo
 ```
 
-### Erro de conexão com banco
+#### **Banco não Conecta**
 ```bash
-# Verificar se MySQL está rodando
-docker-compose ps mysql
+# Aguardar MySQL inicializar completamente
+docker-compose logs -f mysql
 
-# Verificar logs do MySQL
-docker-compose logs mysql
+# Testar conexão
+docker-compose exec mysql mysql -u taskuser -p taskmanager
 ```
 
-### Dependências PHP não instaladas
+### **Reset Completo**
 ```bash
-# Instalar dependências manualmente
-docker exec taskmanager_php_fluentpdo composer install
-docker exec taskmanager_php_medoo composer install
+# ATENÇÃO: Apaga todos os dados
+docker-compose down -v
+docker system prune -a
+docker-compose up -d
 ```
 
-## 📞 Suporte
+## 📊 Monitoramento
 
-Para dúvidas ou problemas:
+### **Verificar Status dos Serviços**
+```bash
+# Status dos containers
+docker-compose ps
 
-1. Verifique os logs: `docker-compose logs`
-2. Consulte a documentação oficial do Docker
-3. Verifique as configurações de rede
-4. Confirme se os domínios estão configurados no arquivo hosts
+# Uso de recursos
+docker stats
 
-## 📝 Licença
+# Logs em tempo real
+docker-compose logs -f
+```
 
-Este projeto foi desenvolvido como teste técnico e está disponível para fins educacionais.
+### **Acesso aos Logs**
+- **Nginx**: `./docker/nginx/logs/`
+- **MySQL**: `docker-compose logs mysql`
+- **PHP**: `docker-compose logs php-medoo`
 
 ---
 
-**Desenvolvido com ❤️ para o teste de Desenvolvedor FullStack PHP**
+## 🎯 **Sistema Pronto para Produção!**
+
+✅ **Medoo**: 100% funcional  
+✅ **FluentPDO**: 100% funcional  
+✅ **Docker**: Configurado e otimizado  
+✅ **SSL**: Certificados auto-gerados  
+✅ **Backup**: Dados persistentes em volumes  
+
+**Desenvolvido com ❤️ em PHP + Docker**

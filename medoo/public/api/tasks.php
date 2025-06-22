@@ -1,8 +1,15 @@
 <?php
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+// Incluir autoload e configurações
 require_once '../../vendor/autoload.php';
+
 session_start();
 
+// Verificar autenticação
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['error' => 'Não autorizado']);
@@ -10,13 +17,12 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 try {
+    // Conectar ao banco
     $config = require '../../app/config/database.php';
-    $pdo = new PDO($config['dsn'], $config['username'], $config['password'], $config['options']);
-    $fluent = new Envms\FluentPDO\Query($pdo);
+    $database = new Medoo\Medoo($config);
+    
     $user_id = $_SESSION['user_id'];
     $method = $_SERVER['REQUEST_METHOD'];
-    
-    // Roteamento simples
     $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $segments = explode('/', trim($path, '/'));
     
@@ -40,33 +46,37 @@ try {
         case 'GET':
             if ($task_id) {
                 // Obter tarefa específica
-                $task = $fluent->from('tasks')
-                    ->leftJoin('task_categories ON tasks.category_id = task_categories.id')
-                    ->select('tasks.id, tasks.title, tasks.description, tasks.status, tasks.priority, tasks.due_date, task_categories.name AS category_name')
-                    ->where('tasks.id', $task_id)
-                    ->where('tasks.user_id', $user_id)
-                    ->fetch();
+                $task = $database->get('tasks', [
+                    '[>]task_categories' => ['category_id' => 'id']
+                ], [
+                    'tasks.id', 'tasks.title', 'tasks.description',
+                    'tasks.status', 'tasks.priority', 'tasks.due_date',
+                    'task_categories.name(category_name)'
+                ], ['tasks.id' => $task_id, 'tasks.user_id' => $user_id]);
                 
                 echo json_encode(['success' => true, 'data' => $task]);
             } else {
                 // Listar tarefas com filtros
-                $query = $fluent->from('tasks')
-                    ->leftJoin('task_categories ON tasks.category_id = task_categories.id')
-                    ->select('tasks.id, tasks.title, tasks.description, tasks.status, tasks.priority, tasks.due_date, task_categories.name AS category_name')
-                    ->where('tasks.user_id', $user_id);
+                $filters = ['tasks.user_id' => $user_id];
                 
-                if (!empty($_GET['status'])) {
-                    $query->where('tasks.status', $_GET['status']);
-                }
-                if (!empty($_GET['priority'])) {
-                    $query->where('tasks.priority', $_GET['priority']);
-                }
+                if (!empty($_GET['status'])) $filters['tasks.status'] = $_GET['status'];
+                if (!empty($_GET['priority'])) $filters['tasks.priority'] = $_GET['priority'];
                 if (!empty($_GET['search'])) {
                     $search = '%' . $_GET['search'] . '%';
-                    $query->where('(tasks.title LIKE ? OR tasks.description LIKE ?)', $search, $search);
+                    $filters['OR'] = [
+                        'tasks.title[~]' => $search,
+                        'tasks.description[~]' => $search
+                    ];
                 }
                 
-                $tasks = $query->fetchAll();
+                $tasks = $database->select('tasks', [
+                    '[>]task_categories' => ['category_id' => 'id']
+                ], [
+                    'tasks.id', 'tasks.title', 'tasks.description',
+                    'tasks.status', 'tasks.priority', 'tasks.due_date',
+                    'task_categories.name(category_name)'
+                ], $filters);
+                
                 echo json_encode(['success' => true, 'data' => $tasks]);
             }
             break;
@@ -80,7 +90,7 @@ try {
                 break;
             }
             
-            $result = $fluent->insertInto('tasks')->values([
+            $result = $database->insert('tasks', [
                 'title' => $input['title'],
                 'description' => $input['description'] ?? '',
                 'category_id' => $input['category_id'] ?? null,
@@ -90,9 +100,9 @@ try {
                 'user_id' => $user_id,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
-            ])->execute();
+            ]);
             
-            echo json_encode(['success' => true, 'data' => ['id' => $pdo->lastInsertId()]]);
+            echo json_encode(['success' => true, 'data' => ['id' => $database->id()]]);
             break;
             
         case 'PUT':
@@ -104,7 +114,7 @@ try {
             
             $input = json_decode(file_get_contents('php://input'), true);
             
-            $result = $fluent->update('tasks')->set([
+            $result = $database->update('tasks', [
                 'title' => $input['title'],
                 'description' => $input['description'] ?? '',
                 'category_id' => $input['category_id'] ?? null,
@@ -112,7 +122,7 @@ try {
                 'status' => $input['status'] ?? 'pending',
                 'due_date' => $input['due_date'] ?? null,
                 'updated_at' => date('Y-m-d H:i:s')
-            ])->where('id', $task_id)->where('user_id', $user_id)->execute();
+            ], ['id' => $task_id, 'user_id' => $user_id]);
             
             echo json_encode(['success' => true, 'message' => 'Atualizado']);
             break;
@@ -124,7 +134,7 @@ try {
                 break;
             }
             
-            $fluent->deleteFrom('tasks')->where('id', $task_id)->where('user_id', $user_id)->execute();
+            $database->delete('tasks', ['id' => $task_id, 'user_id' => $user_id]);
             echo json_encode(['success' => true, 'message' => 'Excluído']);
             break;
             
@@ -137,12 +147,17 @@ try {
             
             $input = json_decode(file_get_contents('php://input'), true);
             
-            $fluent->update('tasks')->set([
+            $database->update('tasks', [
                 'status' => $input['status'],
                 'updated_at' => date('Y-m-d H:i:s')
-            ])->where('id', $task_id)->where('user_id', $user_id)->execute();
+            ], ['id' => $task_id, 'user_id' => $user_id]);
             
             echo json_encode(['success' => true, 'message' => 'Status atualizado']);
+            break;
+            
+        default:
+            http_response_code(405);
+            echo json_encode(['error' => 'Método não permitido']);
             break;
     }
     
@@ -150,4 +165,4 @@ try {
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);
 }
-?>
+?> 

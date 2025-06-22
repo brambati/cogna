@@ -5,10 +5,10 @@ RewriteEngine On
 # Roteamento para APIs de autenticação
 RewriteRule ^api/auth/(.*)$ app/api/auth/router.php [QSA,L]
 
-# Roteamento para outras APIs (futuro)
-RewriteRule ^api/tasks/(.*)$ app/api/tasks/router.php [QSA,L]
-RewriteRule ^api/categories/(.*)$ app/api/categories/router.php [QSA,L]
-RewriteRule ^api/user/(.*)$ app/api/user/router.php [QSA,L]
+# Roteamento para APIs diretas (arquivos existentes)
+RewriteRule ^api/tasks/(.*)$ api/tasks.php [QSA,L]
+RewriteRule ^api/stats/(.*)$ api/stats.php [QSA,L]
+RewriteRule ^api/categories/(.*)$ api/categories.php [QSA,L]
 
 # Configurações de segurança
 <Files "*.php">

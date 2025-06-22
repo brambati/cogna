@@ -16,6 +16,7 @@ Sistema completo de gerenciamento de tarefas desenvolvido em PHP com Docker, imp
 - [API](#-api)
 - [JavaScript & AJAX](#-javascript--ajax)
 - [Segurança](#-segurança)
+- [HTTPS/SSL](#-httpsssl)
 - [Troubleshooting](#-troubleshooting)
 
 ## 🚀 Funcionalidades
@@ -97,9 +98,10 @@ Sistema completo de gerenciamento de tarefas desenvolvido em PHP com Docker, imp
 ### **Infrastructure**
 
 - **Docker**: Containerização completa
-- **Nginx**: Servidor web com SSL
+- **Nginx**: Servidor web com SSL/HTTPS
 - **PHP-FPM**: Processamento PHP otimizado
 - **MySQL**: Banco de dados
+- **SSL/TLS**: Certificados auto-assinados para desenvolvimento
 
 ### **Segurança**
 
@@ -124,24 +126,42 @@ git clone <repo-url>
 cd cogna
 ```
 
-### 2. **Configure Hosts (Opcional)**
-
-Adicione ao arquivo `/etc/hosts` (Linux/Mac) ou `C:\Windows\System32\drivers\etc\hosts` (Windows):
-
-```
-127.0.0.1 projetomedoo.test
-127.0.0.1 projetofluentpdo.test
-```
-
-### 3. **Inicie os Containers**
+### 2. **Instalação Básica (HTTP)**
 
 ```bash
+# Configurar hosts (opcional)
+# Adicione ao arquivo /etc/hosts (Linux/Mac) ou C:\Windows\System32\drivers\etc\hosts (Windows):
+127.0.0.1 projetomedoo.test
+127.0.0.1 projetofluentpdo.test
+
 # Iniciar todos os serviços
 docker-compose up -d
 
 # Verificar status
 docker-compose ps
 ```
+
+### 3. **🔐 Instalação com HTTPS (Recomendado)**
+
+Para configurar HTTPS de forma automática:
+
+```bash
+# Executar script de configuração automática
+bash setup-https.sh
+```
+
+**OU configurar manualmente:**
+
+```bash
+# Gerar certificados SSL
+bash docker/nginx/generate-ssl.sh
+
+# Configurar hosts (ver passo 2)
+# Reiniciar containers
+docker-compose down && docker-compose up -d
+```
+
+📖 **Documentação completa**: [HTTPS-SETUP.md](HTTPS-SETUP.md)
 
 ### 4. **Aguarde a Inicialização**
 
@@ -154,8 +174,15 @@ docker-compose logs -f mysql
 
 ### 5. **Verificar Funcionamento**
 
+**URLs HTTP:**
 - **Medoo**: http://projetomedoo.test ou http://localhost
 - **FluentPDO**: http://projetofluentpdo.test ou http://localhost
+
+**URLs HTTPS (se configurado):**
+- **Medoo**: https://projetomedoo.test ⭐
+- **FluentPDO**: https://projetofluentpdo.test ⭐
+
+**Outros serviços:**
 - **phpMyAdmin**: http://localhost:8080
 
 ## 🎯 Uso
@@ -469,6 +496,55 @@ docker system df
 - **Login**: 5 tentativas / 15 minutos
 - **Perfil**: 10 requests / 10 minutos
 - **Mudança de Senha**: 3 tentativas / 30 minutos
+
+## 🔐 HTTPS/SSL
+
+### **Configuração Automática**
+
+O projeto inclui suporte completo para HTTPS com certificados SSL auto-assinados:
+
+```bash
+# Configuração automática completa
+bash setup-https.sh
+```
+
+### **Recursos de Segurança**
+
+- ✅ **SSL/TLS**: Criptografia completa de dados
+- ✅ **Certificados SSL**: Auto-assinados para desenvolvimento
+- ✅ **Redirecionamento HTTP → HTTPS**: Automático (301)
+- ✅ **Headers de Segurança**: HSTS, X-Frame-Options, CSP
+- ✅ **HTTP/2**: Protocolo otimizado para HTTPS
+
+### **URLs Seguras**
+
+- **Medoo HTTPS**: https://projetomedoo.test
+- **FluentPDO HTTPS**: https://projetofluentpdo.test
+
+### **Aviso de Certificado**
+
+Como utilizamos certificados auto-assinados, seu navegador mostrará um aviso de segurança:
+
+1. Clique em **"Avançado"**
+2. Clique em **"Prosseguir para o site"**
+3. O site carregará com HTTPS funcionando
+
+### **Comandos Úteis**
+
+```bash
+# Regenerar certificados SSL
+bash docker/nginx/generate-ssl.sh
+
+# Testar HTTPS
+curl -k -I https://projetomedoo.test
+
+# Verificar redirecionamento
+curl -I http://projetomedoo.test
+```
+
+### **Documentação Completa**
+
+📖 Para guia detalhado, consulte: **[HTTPS-SETUP.md](HTTPS-SETUP.md)**
 
 ## 🛠️ Troubleshooting
 
